@@ -40,7 +40,7 @@ export const AFTERCARE_TEXT = {
 export const CONTACTS_TEXT = `
 Мои контакты:
 
-Telegram: @snezhok_pi
+Telegram: ${process.env.MASER_LOGIN}
 Instagram: https://www.instagram.com/cutesakuraso_tattooer
 VK: https://vk.com/cutesakuraso_tattoo
 `;
@@ -59,7 +59,9 @@ export const PRICE_TEXT = `ПРАЙС:
 *стоимость может меняться за счет детализированности.`;
 
 export const BOOKINT_TEXTS = {
-  start: "Опишите идею татуировки",
+  start: `У Вас есть 5 минут на запись
+
+Опишите идею татуировки`,
   askPhoto: "Отправьте фото если есть",
   askDate: "Укажите желаемую дату записи",
   askContacts:

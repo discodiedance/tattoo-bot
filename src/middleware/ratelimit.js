@@ -1,6 +1,6 @@
 import { rateLimits } from "../bot/utils/rate-limit-store.js";
 
-export function createRateLimiter(limit = 10, windowMs = 5000) {
+export function createRateLimiter(limit, windowMs) {
   return async (ctx, next) => {
     if (!ctx.updateType || !ctx.from) return next();
 

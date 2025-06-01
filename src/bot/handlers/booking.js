@@ -1,3 +1,4 @@
+import { MASTER_CHAT_ID, MASTER_LOGIN } from "../../../config.js";
 import { BOOKINT_TEXTS } from "../common/texts.js";
 import {
   bookingKeyboard,
@@ -7,6 +8,8 @@ import {
 
 const userStates = {};
 const lastBookingTimestamps = {};
+const TIMEOUT_MS = 5 * 60 * 1000;
+const userTimers = {};
 
 function canUserBook(userId) {
   const lastBooking = lastBookingTimestamps[userId];
@@ -16,12 +19,31 @@ function canUserBook(userId) {
   return Date.now() - lastBooking >= oneDay;
 }
 
+function setupUserTimeout(userId) {
+  if (userTimers[userId]) {
+    clearTimeout(userTimers[userId]);
+  }
+
+  userTimers[userId] = setTimeout(async () => {
+    if (userStates[userId]) {
+      delete userStates[userId];
+      const botInstance = getBotInstance();
+      await botInstance.telegram.sendMessage(
+        userId,
+        "⏳ Время записи истекло. Пожалуйста, начните заново.",
+        mainMenuKeyboard
+      );
+    }
+    delete userTimers[userId];
+  }, TIMEOUT_MS);
+}
+
 async function startBooking(ctx) {
   const user = ctx.from;
 
   if (!canUserBook(user.id)) {
     return ctx.reply(
-      "Вы уже делали запись сегодня. Пожалуйста, попробуйте завтра. Либо свяжитесь с мастером: @snezhok_pi",
+      `Вы уже делали запись сегодня. Пожалуйста, попробуйте завтра. Либо свяжитесь с мастером: ${MASTER_LOGIN}`,
       mainMenuKeyboard
     );
   }
@@ -32,21 +54,32 @@ async function startBooking(ctx) {
       ? `@${user.username}`
       : `${user.first_name}${user.last_name ? ` ${user.last_name}` : ""}`,
   };
+
+  setupUserTimeout(ctx.from.id);
   await ctx.reply(BOOKINT_TEXTS.start, cancelBookingKeyboard);
 }
 
 async function handlePhoto(ctx, userState) {
+  const userId = ctx.from.id;
   userState.step = "date";
+  setupUserTimeout(userId);
   await ctx.reply(BOOKINT_TEXTS.askDate, cancelBookingKeyboard);
 }
 
 async function handleDate(ctx, userState) {
+  const userId = ctx.from.id;
   userState.date = ctx.message.text;
   userState.step = "contacts";
+  setupUserTimeout(userId);
   await ctx.reply(BOOKINT_TEXTS.askContacts, cancelBookingKeyboard);
 }
 
 async function completeBooking(ctx, userId, userState) {
+  if (userTimers[userId]) {
+    clearTimeout(userTimers[userId]);
+    delete userTimers[userId];
+  }
+
   const { username, description, date, contacts, photo } = userState;
   const message = BOOKINT_TEXTS.masterMessage(
     username,
@@ -56,20 +89,24 @@ async function completeBooking(ctx, userId, userState) {
   );
 
   if (photo) {
-    await ctx.telegram.sendPhoto(process.env.MASTER_CHAT_ID, photo, {
+    await ctx.telegram.sendPhoto(MASTER_CHAT_ID, photo, {
       caption: message,
     });
   } else {
-    await ctx.telegram.sendMessage(process.env.MASTER_CHAT_ID, message);
+    await ctx.telegram.sendMessage(MASTER_CHAT_ID, message);
   }
 
   lastBookingTimestamps[userId] = Date.now();
-
   delete userStates[userId];
   await ctx.reply(BOOKINT_TEXTS.complete, mainMenuKeyboard);
 }
 
 async function cancelBooking(ctx, userId) {
+  if (userTimers[userId]) {
+    clearTimeout(userTimers[userId]);
+    delete userTimers[userId];
+  }
+
   delete userStates[userId];
   await ctx.reply(BOOKINT_TEXTS.cancel, mainMenuKeyboard);
 }
@@ -87,6 +124,7 @@ async function handleText(ctx) {
     case "description":
       userState.description = ctx.message.text;
       userState.step = "photo";
+      setupUserTimeout(userId);
       await ctx.reply(BOOKINT_TEXTS.askPhoto, bookingKeyboard);
       break;
 
@@ -111,6 +149,8 @@ async function handlePhotoMessage(ctx) {
 }
 
 export function setupBookingHandlers(bot) {
+  global.botInstance = bot;
+
   bot.hears(["Запись на тату", "Запись на сеанс"], startBooking);
   bot.command("booking", startBooking);
 
@@ -121,4 +161,8 @@ export function setupBookingHandlers(bot) {
 
   bot.on("text", handleText);
   bot.on("photo", handlePhotoMessage);
+}
+
+function getBotInstance() {
+  return global.botInstance;
 }

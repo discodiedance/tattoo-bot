@@ -1,5 +1,6 @@
 import { WELCOME_TEXT } from "../common/texts.js";
 import { mainMenuKeyboard } from "../utils/keyboards.js";
+import { User } from "../../db/models/user.js";
 
 export function showMenu(ctx) {
   return ctx.reply("Меню:", mainMenuKeyboard);
@@ -15,11 +16,19 @@ export function setupMenuCommands(bot) {
     { command: "aftercare", description: "Уход за тату" },
   ]);
 
-  bot.start((ctx) => {
-    ctx.reply(
-      WELCOME_TEXT,
-      mainMenuKeyboard
-    );
+  bot.start(async (ctx) => {
+    const { id, username } = ctx.from;
+    const user = new User({
+      telegramId: id.toString(),
+      telegramLogin: username || "Нет логина",
+    });
+
+    const existingUser = await User.findOne({ telegramId: id.toString() });
+    if (!existingUser) {
+      await user.save();
+    }
+
+    ctx.reply(WELCOME_TEXT, mainMenuKeyboard);
   });
 
   bot.hears("Меню", showMenu);
