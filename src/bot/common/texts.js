@@ -1,4 +1,4 @@
-import { MASTER_LOGIN } from "../../../config";
+import { MASTER_LOGIN } from "../../../config.js";
 
 export const WELCOME_TEXT = `Привет, я тату-бот Снежа, у меня ты можешь узнать прайс на татуировку, как правильно ухаживать за твоей татуировкой и записаться на сеанс!
 
