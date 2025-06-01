@@ -1,3 +1,5 @@
+import { MASTER_LOGIN } from "../../../config.js";
+
 export const WELCOME_TEXT = `Привет, я тату-бот Снежа, у меня ты можешь узнать прайс на татуировку, как правильно ухаживать за твоей татуировкой и записаться на сеанс!
 
 Тыкни на нужную тебе кнопку для получения информации!`;
@@ -40,7 +42,7 @@ export const AFTERCARE_TEXT = {
 export const CONTACTS_TEXT = `
 Мои контакты:
 
-Telegram: ${process.env.MASER_LOGIN}
+Telegram: ${MASTER_LOGIN}
 Instagram: https://www.instagram.com/cutesakuraso_tattooer
 VK: https://vk.com/cutesakuraso_tattoo
 `;
